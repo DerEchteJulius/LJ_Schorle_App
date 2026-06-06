@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kasse">
+  <meta name="theme-color" content="#16213e">
+  <title>Ausschank Kasse</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+
+<!-- ── First-run Setup ──────────────────────────────────────────────────────-->
+<div id="setup-screen" class="hidden">
+  <h1>🍷 Ausschank Kasse</h1>
+  <p>Wie soll dieses Gerät heißen?<br>(erscheint im CSV-Export)</p>
+  <input id="setup-device-name" type="text" placeholder="z.B. Theke, Außen, Bar" maxlength="20">
+  <button id="setup-save">Starten →</button>
+</div>
+
+<!-- ── App ──────────────────────────────────────────────────────────────────-->
+<div id="app" class="hidden">
+
+  <!-- Update Banner -->
+  <div id="update-banner" class="hidden">
+    🔄 Neue Version verfügbar
+    <button>Jetzt neu laden</button>
+  </div>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="app-title">🍷 Kasse</span>
+      <span id="device-label"></span>
+    </div>
+    <span id="last-backup"></span>
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <button class="nav-btn nav-btn--active" data-view="order">Bestellen</button>
+    <button class="nav-btn" data-view="stats">Statistik</button>
+    <button class="nav-btn" data-view="settings">Einstellungen</button>
+  </nav>
+
+  <!-- ── Order View ──────────────────────────────────────────────────────────-->
+  <div id="view-order" class="view">
+    <div class="order-layout">
+      <!-- Product Grid -->
+      <div class="product-grid-wrap">
+        <div id="product-grid"></div>
+      </div>
+      <!-- Order Panel -->
+      <div class="order-panel">
+        <div class="order-list-wrap">
+          <ul id="order-list"></ul>
+        </div>
+        <div class="order-footer">
+          <div class="total-row">
+            <span class="total-label">Gesamt</span>
+            <span id="order-total">0,00 €</span>
+          </div>
+          <button id="pay-btn">Bezahlen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Stats View ──────────────────────────────────────────────────────────-->
+  <div id="view-stats" class="view hidden">
+    <div class="stats-header">
+      <h2>Statistik</h2>
+      <button id="export-csv-btn" class="btn-secondary">CSV exportieren</button>
+    </div>
+    <ul id="stats-list"></ul>
+    <div class="stats-grand">
+      <span>Gesamtumsatz</span>
+      <span id="stats-total">0,00 €</span>
+    </div>
+  </div>
+
+  <!-- ── Settings View ───────────────────────────────────────────────────────-->
+  <div id="view-settings" class="view hidden">
+
+    <!-- Gerät -->
+    <div class="settings-section">
+      <h3>Gerät</h3>
+      <div class="settings-row">
+        <input id="device-name-input" type="text" placeholder="Gerätename" maxlength="20">
+        <button id="device-name-save" class="btn-primary">Speichern</button>
+      </div>
+    </div>
+
+    <!-- Produkte -->
+    <div class="settings-section">
+      <h3>Produkte</h3>
+      <ul id="settings-product-list"></ul>
+      <button id="add-product-btn" class="btn-primary">+ Produkt hinzufügen</button>
+    </div>
+
+    <!-- Export / Import -->
+    <div class="settings-section">
+      <h3>Export & Sync</h3>
+      <div class="export-actions">
+        <button id="export-config-btn" class="btn-secondary">Konfiguration exportieren</button>
+        <button id="import-config-btn" class="btn-secondary">Konfiguration importieren</button>
+      </div>
+    </div>
+
+    <!-- Datenlöschung -->
+    <div class="settings-section">
+      <h3>Daten</h3>
+      <button id="clear-data-btn" class="btn-danger">Alle Transaktionen löschen…</button>
+    </div>
+
+  </div>
+
+</div><!-- /#app -->
+
+<!-- ── Payment Overlay ────────────────────────────────────────────────────────-->
+<div id="payment-overlay" class="overlay">
+  <div class="overlay-box">
+    <h2>Bezahlung</h2>
+    <div class="pay-row">
+      <span class="pay-label">Zu zahlen</span>
+      <span id="pay-total" class="pay-total-amount"></span>
+    </div>
+    <input id="pay-given" type="number" inputmode="decimal" placeholder="Gegeben (€)" step="0.01">
+    <div class="pay-row">
+      <span class="change-label">Rückgeld</span>
+      <span id="pay-change"></span>
+    </div>
+    <div class="overlay-actions">
+      <button id="pay-cancel">Abbrechen</button>
+      <button id="pay-complete" disabled>Abschließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Product Form Overlay ───────────────────────────────────────────────────-->
+<div id="product-form-overlay" class="overlay">
+  <div class="overlay-box">
+    <h2>Produkt</h2>
+    <form id="product-form">
+      <input type="hidden" id="pf-id">
+      <div class="form-group">
+        <label for="pf-name">Name</label>
+        <input id="pf-name" type="text" placeholder="z.B. Weinriesling" required maxlength="40">
+      </div>
+      <div class="form-group">
+        <label for="pf-price">Preis (€)</label>
+        <input id="pf-price" type="text" inputmode="decimal" placeholder="5,00" required>
+      </div>
+      <div class="form-group">
+        <label for="pf-pledge">Pfandbetrag (€, optional)</label>
+        <input id="pf-pledge" type="text" inputmode="decimal" placeholder="2,00">
+        <small>Leer lassen wenn kein Pfand</small>
+      </div>
+      <div class="form-actions">
+        <button type="button" id="product-form-cancel">Abbrechen</button>
+        <button type="submit" id="product-form-save">Speichern</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

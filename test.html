@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Kasse — Unit Tests</title>
+  <style>
+    body { font-family: monospace; background: #0f0f1a; color: #f1f5f9; padding: 1.5rem; max-width: 640px; }
+    h1 { color: #4ade80; margin-bottom: 1rem; }
+    .pass { color: #4ade80; } .fail { color: #ef4444; }
+    .result { margin: .2rem 0; font-size: .9rem; }
+    #summary { margin-top: 1.5rem; font-size: 1.1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+<h1>🧪 Kasse Unit Tests</h1>
+<div id="results"></div>
+<div id="summary"></div>
+
+<script type="module">
+import { formatCents, parseToCents, computeTotal, computeChange, generateId } from './js/cart.js';
+
+const results = [];
+
+function assert(description, actual, expected) {
+  const pass = JSON.stringify(actual) === JSON.stringify(expected);
+  results.push({ description, pass, actual, expected });
+}
+
+// ── formatCents ───────────────────────────────────────────────────────────────
+assert('formatCents(0) → "0,00 €"',          formatCents(0),      '0,00 €');
+assert('formatCents(500) → "5,00 €"',         formatCents(500),    '5,00 €');
+assert('formatCents(550) → "5,50 €"',         formatCents(550),    '5,50 €');
+assert('formatCents(1000) → "10,00 €"',       formatCents(1000),   '10,00 €');
+assert('formatCents(-600) → "-6,00 €"',       formatCents(-600),   '-6,00 €');
+assert('formatCents(-200) → "-2,00 €"',       formatCents(-200),   '-2,00 €');
+assert('formatCents(12345) → "123,45 €"',     formatCents(12345),  '123,45 €');
+assert('formatCents(100000) → "1.000,00 €"',  formatCents(100000), '1.000,00 €');
+assert('formatCents(1) → "0,01 €"',           formatCents(1),      '0,01 €');
+assert('formatCents(99) → "0,99 €"',          formatCents(99),     '0,99 €');
+
+// ── parseToCents ──────────────────────────────────────────────────────────────
+assert('parseToCents("5") → 500',             parseToCents('5'),      500);
+assert('parseToCents("5,00") → 500',          parseToCents('5,00'),   500);
+assert('parseToCents("5.00") → 500',          parseToCents('5.00'),   500);
+assert('parseToCents("2,50") → 250',          parseToCents('2,50'),   250);
+assert('parseToCents("0") → 0',               parseToCents('0'),      0);
+assert('parseToCents("abc") → NaN',           isNaN(parseToCents('abc')), true);
+assert('parseToCents("-1") → NaN',            isNaN(parseToCents('-1')),  true);
+
+// ── computeTotal ──────────────────────────────────────────────────────────────
+assert('computeTotal([]) → 0',
+  computeTotal([]), 0);
+
+assert('computeTotal 1 item',
+  computeTotal([{ qty: 1, unit_price_cents: 500 }]), 500);
+
+assert('computeTotal 2 items',
+  computeTotal([{ qty: 2, unit_price_cents: 500 }, { qty: 1, unit_price_cents: 400 }]), 1400);
+
+assert('computeTotal with Pfand (negative qty)',
+  computeTotal([{ qty: 1, unit_price_cents: 500 }, { qty: -1, unit_price_cents: 200 }]), 300);
+
+assert('computeTotal Pfand-only negative result',
+  computeTotal([{ qty: -3, unit_price_cents: 200 }]), -600);
+
+assert('computeTotal mixed: Getränke + Pfand',
+  computeTotal([
+    { qty: 2, unit_price_cents: 500 },
+    { qty: 1, unit_price_cents: 400 },
+    { qty: -2, unit_price_cents: 200 },
+  ]), 1000); // 1000 + 400 - 400 = 1000
+
+// ── computeChange ─────────────────────────────────────────────────────────────
+assert('computeChange(1000, 800) → 200',    computeChange(1000, 800),  200);
+assert('computeChange(500, 500) → 0',       computeChange(500, 500),   0);
+assert('computeChange(0, -600) → 600',      computeChange(0, -600),    600); // Pfand-only
+
+// ── generateId ────────────────────────────────────────────────────────────────
+assert('generateId returns non-empty string', typeof generateId() === 'string' && generateId().length > 0, true);
+assert('generateId returns unique values', generateId() !== generateId(), true);
+
+// ── Render ─────────────────────────────────────────────────────────────────────
+const container = document.getElementById('results');
+let pass = 0, fail = 0;
+results.forEach(({ description, pass: p, actual, expected }) => {
+  const div = document.createElement('div');
+  div.className = 'result ' + (p ? 'pass' : 'fail');
+  div.textContent = (p ? '✓ ' : '✗ ') + description + (p ? '' : ` (got: ${JSON.stringify(actual)}, expected: ${JSON.stringify(expected)})`);
+  container.appendChild(div);
+  p ? pass++ : fail++;
+});
+
+const summary = document.getElementById('summary');
+summary.className = fail === 0 ? 'pass' : 'fail';
+summary.textContent = `${pass}/${pass + fail} Tests bestanden${fail > 0 ? ` — ${fail} fehlgeschlagen` : ' ✓'}`;
+</script>
+</body>
+</html>
