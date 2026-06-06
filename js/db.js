@@ -105,7 +105,26 @@ export async function clearCart() {
 
 export async function saveTransaction(tx) {
   const store = await txStore('transactions', 'readwrite');
-  return promisify(store.put(tx));
+  return promisify(store.put({ ...tx, synced: false }));
+}
+
+export async function markTransactionSynced(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('transactions', 'readwrite');
+    const store = t.objectStore('transactions');
+    const req = store.get(id);
+    req.onsuccess = () => {
+      if (req.result) store.put({ ...req.result, synced: true });
+      resolve();
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getUnsyncedTransactions() {
+  const all = await getAllTransactions();
+  return all.filter((tx) => !tx.synced);
 }
 
 export async function getAllTransactions() {

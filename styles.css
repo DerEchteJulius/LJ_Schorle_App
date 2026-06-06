@@ -34,9 +34,13 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 /* ── Top Bar ─────────────────────────────────────────────────────────────────*/
 .top-bar { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); padding: .6rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .top-bar-left { display: flex; flex-direction: column; }
+.top-bar-right { display: flex; flex-direction: column; align-items: flex-end; gap: .1rem; }
 .app-title { font-weight: 700; font-size: 1rem; }
 #device-label { font-size: .75rem; color: var(--text-muted); }
 #last-backup { font-size: .7rem; color: var(--text-muted); }
+.sync-status { font-size: .7rem; }
+.sync-ok { color: var(--accent); }
+.sync-pending { color: var(--pfand); }
 
 /* ── Nav ─────────────────────────────────────────────────────────────────────*/
 .nav { display: flex; background: var(--surface2); border-bottom: 1px solid var(--border); flex-shrink: 0; }

@@ -1,9 +1,45 @@
 // Main app entry point — routing, state, event wiring
 
-import { getProducts, getAllProducts, getCart, addToCart, removeFromCart, clearCart, saveTransaction, getAllTransactions, clearAllTransactions, saveProduct, deleteProduct } from './db.js';
+import { getProducts, getAllProducts, getCart, addToCart, removeFromCart, clearCart, saveTransaction, getAllTransactions, clearAllTransactions, saveProduct, deleteProduct, markTransactionSynced, getUnsyncedTransactions } from './db.js';
 import { computeTotal, computeChange, generateId, getDeviceId, getDeviceName, setDeviceName, getDeviceLabel, getLastBackup, parseToCents, formatCents } from './cart.js';
 import { renderProductGrid, renderOrderList, renderTotal, updateBackupTimestamp, showToast, openPaymentDialog, renderProductSettings, renderStats } from './ui.js';
 import { exportCSV, exportConfig, importConfig } from './export.js';
+import { syncTransactionToFirebase } from './firebase.js';
+
+// ── Firebase Sync helpers ─────────────────────────────────────────────────────
+
+async function syncToFirebase(tx) {
+  const ok = await syncTransactionToFirebase(tx);
+  if (ok) await markTransactionSynced(tx.id);
+  return ok;
+}
+
+// Bei App-Start alle ungesyncten Transaktionen nachsenden (wenn online)
+async function syncPendingTransactions() {
+  if (!navigator.onLine) return;
+  const pending = await getUnsyncedTransactions();
+  if (pending.length === 0) return;
+  let synced = 0;
+  for (const tx of pending) {
+    const ok = await syncToFirebase(tx);
+    if (ok) synced++;
+  }
+  if (synced > 0) updateSyncStatus();
+}
+
+function updateSyncStatus() {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  getUnsyncedTransactions().then((pending) => {
+    el.textContent = pending.length === 0 ? '☁ Synced' : `☁ ${pending.length} ausstehend`;
+    el.className = 'sync-status ' + (pending.length === 0 ? 'sync-ok' : 'sync-pending');
+  });
+}
+
+// Wenn Gerät online kommt → Pending-Sync anstoßen
+window.addEventListener('online', () => {
+  syncPendingTransactions().then(updateSyncStatus);
+});
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -38,6 +74,9 @@ async function init() {
   await loadAndRender();
   setupNav();
   setupBeforeUnload();
+  // Background-Sync: ungesyncte Transaktionen nachsenden
+  syncPendingTransactions().then(updateSyncStatus);
+  updateSyncStatus();
 }
 
 // ── First-run Setup ───────────────────────────────────────────────────────────
@@ -165,6 +204,8 @@ document.getElementById('pay-btn').addEventListener('click', () => {
     renderOrderList(cartItems, handleRemoveItem);
     renderTotal(0);
     showToast('Transaktion gespeichert ✓', 'success');
+    // Firebase-Sync im Hintergrund — non-blocking
+    syncToFirebase(tx).then(updateSyncStatus);
   });
 });
 

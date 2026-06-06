@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kasse-v7';
+const CACHE_NAME = 'kasse-v8';
 const CACHED_URLS = [
   '/',
   '/index.html',
@@ -9,6 +9,7 @@ const CACHED_URLS = [
   '/js/export.js',
   '/js/ui.js',
   '/js/app.js',
+  '/js/firebase.js',
 ];
 
 self.addEventListener('install', (event) => {
