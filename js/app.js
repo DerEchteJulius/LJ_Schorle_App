@@ -190,7 +190,7 @@ async function switchView(view) {
   }
   if (view === 'settings') {
     const all = await getAllProducts();
-    renderProductSettings(all, handleEditProduct, handleDeleteProduct, handleMoveUp, handleMoveDown);
+    renderProductSettings(all, handleEditProduct, handleDeleteProduct, handleReorder);
     document.getElementById('device-name-input').value = getDeviceName();
   }
 }
@@ -206,31 +206,21 @@ function handleDeleteProduct(id) {
   if (!confirm('Produkt wirklich löschen?')) return;
   deleteProduct(id).then(async () => {
     const all = await getAllProducts();
-    renderProductSettings(all, handleEditProduct, handleDeleteProduct, handleMoveUp, handleMoveDown);
+    renderProductSettings(all, handleEditProduct, handleDeleteProduct, handleReorder);
     products = await getProducts();
     renderProductGrid(products, handleProductClick, handlePfandClick);
     showToast('Produkt gelöscht');
   });
 }
 
-async function handleMoveUp(idx) {
+async function handleReorder(fromIdx, toIdx) {
   const all = await getAllProducts();
-  if (idx === 0) return;
-  [all[idx - 1], all[idx]] = [all[idx], all[idx - 1]];
+  if (fromIdx === toIdx) return;
+  const [moved] = all.splice(fromIdx, 1);
+  all.splice(toIdx, 0, moved);
   all.forEach((p, i) => { p.sort_order = i; });
   for (const p of all) await saveProduct(p);
-  renderProductSettings(all, handleEditProduct, handleDeleteProduct, handleMoveUp, handleMoveDown);
-  products = await getProducts();
-  renderProductGrid(products, handleProductClick, handlePfandClick);
-}
-
-async function handleMoveDown(idx) {
-  const all = await getAllProducts();
-  if (idx === all.length - 1) return;
-  [all[idx], all[idx + 1]] = [all[idx + 1], all[idx]];
-  all.forEach((p, i) => { p.sort_order = i; });
-  for (const p of all) await saveProduct(p);
-  renderProductSettings(all, handleEditProduct, handleDeleteProduct, handleMoveUp, handleMoveDown);
+  renderProductSettings(all, handleEditProduct, handleDeleteProduct, handleReorder);
   products = await getProducts();
   renderProductGrid(products, handleProductClick, handlePfandClick);
 }

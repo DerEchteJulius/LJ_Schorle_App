@@ -226,29 +226,109 @@ export function openPaymentDialog(totalCents, onComplete) {
 
 // ── Settings View ─────────────────────────────────────────────────────────────
 
-export function renderProductSettings(products, onEdit, onDelete, onMoveUp, onMoveDown) {
+export function renderProductSettings(products, onEdit, onDelete, onReorder) {
   const list = document.getElementById('settings-product-list');
   list.innerHTML = '';
+
   products.forEach((p, idx) => {
     const li = document.createElement('li');
     li.className = 'settings-product-item';
+    li.dataset.id = p.id;
+    li.dataset.idx = idx;
     li.innerHTML = `
+      <span class="drag-handle" aria-label="Verschieben">⠿</span>
       <div class="settings-product-info">
         <span class="settings-product-name">${escHtml(p.name)}</span>
         <span class="settings-product-price">${formatCents(p.price_cents)}${p.pledge_amount_cents ? ` + ${formatCents(p.pledge_amount_cents)} Pfand` : ''}</span>
       </div>
       <div class="settings-product-actions">
-        <button class="icon-btn" data-action="up" ${idx === 0 ? 'disabled' : ''} aria-label="Nach oben">▲</button>
-        <button class="icon-btn" data-action="down" ${idx === products.length - 1 ? 'disabled' : ''} aria-label="Nach unten">▼</button>
         <button class="icon-btn" data-action="edit" aria-label="Bearbeiten">✏️</button>
         <button class="icon-btn icon-btn--danger" data-action="delete" aria-label="Löschen">🗑</button>
       </div>
     `;
-    li.querySelector('[data-action="up"]').addEventListener('click', () => onMoveUp(idx));
-    li.querySelector('[data-action="down"]').addEventListener('click', () => onMoveDown(idx));
     li.querySelector('[data-action="edit"]').addEventListener('click', () => onEdit(p));
     li.querySelector('[data-action="delete"]').addEventListener('click', () => onDelete(p.id));
     list.appendChild(li);
+  });
+
+  // ── Touch drag-to-reorder ───────────────────────────────────────────────────
+  let dragEl = null;
+  let dragStartY = 0;
+  let dragOrigIdx = -1;
+  let placeholder = null;
+
+  function getItemAtY(y) {
+    const items = [...list.querySelectorAll('.settings-product-item:not(.dragging)')];
+    for (const item of items) {
+      const rect = item.getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) return item;
+    }
+    return null;
+  }
+
+  list.addEventListener('touchstart', (e) => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    e.preventDefault();
+
+    dragEl = handle.closest('.settings-product-item');
+    dragOrigIdx = parseInt(dragEl.dataset.idx, 10);
+    dragStartY = e.touches[0].clientY;
+
+    const rect = dragEl.getBoundingClientRect();
+    dragEl.classList.add('dragging');
+    dragEl.style.top = rect.top + 'px';
+    dragEl.style.width = rect.width + 'px';
+
+    // Insert placeholder where item was
+    placeholder = document.createElement('li');
+    placeholder.className = 'drag-placeholder';
+    placeholder.style.height = rect.height + 'px';
+    list.insertBefore(placeholder, dragEl);
+    list.appendChild(dragEl); // move to end so it floats above
+  }, { passive: false });
+
+  list.addEventListener('touchmove', (e) => {
+    if (!dragEl) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const dy = touch.clientY - dragStartY;
+    const rect = dragEl.getBoundingClientRect();
+    dragEl.style.top = (rect.top - list.getBoundingClientRect().top + dy) + 'px';
+    dragStartY = touch.clientY;
+
+    // Move placeholder to indicate drop position
+    const target = getItemAtY(touch.clientY);
+    if (target && target !== placeholder) {
+      const targetRect = target.getBoundingClientRect();
+      if (touch.clientY < targetRect.top + targetRect.height / 2) {
+        list.insertBefore(placeholder, target);
+      } else {
+        list.insertBefore(placeholder, target.nextSibling);
+      }
+    }
+  }, { passive: false });
+
+  list.addEventListener('touchend', () => {
+    if (!dragEl) return;
+
+    // Find new index from placeholder position
+    const items = [...list.querySelectorAll('.settings-product-item')];
+    const phIdx = [...list.children].indexOf(placeholder);
+
+    dragEl.classList.remove('dragging');
+    dragEl.style.top = '';
+    dragEl.style.width = '';
+    list.insertBefore(dragEl, placeholder);
+    placeholder.remove();
+    placeholder = null;
+
+    // Calculate new index (excluding the dragged item itself)
+    const newItems = [...list.querySelectorAll('.settings-product-item')];
+    const newIdx = newItems.indexOf(dragEl);
+
+    dragEl = null;
+    if (newIdx !== dragOrigIdx) onReorder(dragOrigIdx, newIdx);
   });
 }
 
