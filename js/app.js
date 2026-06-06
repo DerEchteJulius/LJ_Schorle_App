@@ -74,7 +74,7 @@ async function loadAndRender() {
 // ── Order View: Product Tap ───────────────────────────────────────────────────
 
 async function handleProductClick(product) {
-  // Check if same product already in cart → increment qty
+  // Getränk buchen
   const existing = cartItems.find((i) => i.product_id === product.id && i.qty > 0);
   if (existing) {
     existing.qty++;
@@ -90,6 +90,27 @@ async function handleProductClick(product) {
     cartItems.push(item);
     await addToCart(item);
   }
+
+  // Pfand automatisch dazu buchen wenn das Produkt Pfand hat
+  if (product.pledge_amount_cents > 0) {
+    const pfandId = product.id + '_pfand_out';
+    const existingPfand = cartItems.find((i) => i.product_id === pfandId && i.qty > 0);
+    if (existingPfand) {
+      existingPfand.qty++;
+      await addToCart(existingPfand);
+    } else {
+      const pfandItem = {
+        id: generateId(),
+        product_id: pfandId,
+        product_name: product.name + ' (Pfand)',
+        qty: 1,
+        unit_price_cents: product.pledge_amount_cents,
+      };
+      cartItems.push(pfandItem);
+      await addToCart(pfandItem);
+    }
+  }
+
   renderOrderList(cartItems, handleRemoveItem);
   renderTotal(computeTotal(cartItems));
 }

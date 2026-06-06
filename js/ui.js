@@ -37,7 +37,11 @@ export function renderOrderList(cartItems, onRemove) {
 
   cartItems.forEach((item) => {
     const li = document.createElement('li');
-    li.className = 'order-item' + (item.qty < 0 ? ' order-item--pfand' : '');
+    // qty < 0 → Pfand-Rückgabe (gelb), product_id endet auf _pfand_out → Pfand-Aufschlag (grün-dim)
+    let cls = 'order-item';
+    if (item.qty < 0) cls += ' order-item--pfand';
+    else if (item.product_id && item.product_id.endsWith('_pfand_out')) cls += ' order-item--pfand-out';
+    li.className = cls;
     const lineTotal = item.qty * item.unit_price_cents;
     li.innerHTML = `
       <span class="item-name">${escHtml(item.product_name)}${item.qty !== 1 && item.qty !== -1 ? ` ×${item.qty}` : ''}</span>

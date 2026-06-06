@@ -67,6 +67,7 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .order-item { display: flex; align-items: center; gap: .25rem; padding: .45rem .5rem; border-radius: var(--radius-sm); font-size: .88rem; }
 .order-item + .order-item { border-top: 1px solid var(--border); }
 .order-item--pfand .item-price { color: var(--pfand); }
+.order-item--pfand-out .item-price { color: #64748b; font-size: .78rem; }
 .item-name { flex: 1; font-size: .82rem; }
 .item-price { font-size: .82rem; white-space: nowrap; color: var(--accent); }
 .remove-btn { color: var(--text-muted); font-size: .8rem; padding: .2rem .3rem; border-radius: 4px; }
