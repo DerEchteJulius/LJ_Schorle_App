@@ -70,8 +70,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .order-item--pfand-out .item-price { color: #64748b; font-size: .78rem; }
 .item-name { flex: 1; font-size: .85rem; }
 .item-price { font-size: .85rem; white-space: nowrap; color: var(--accent); }
-.remove-btn { color: var(--text-muted); font-size: .85rem; padding: .3rem .4rem; border-radius: 4px; }
-.remove-btn:hover { color: var(--danger); }
+/* ✕ Button groß genug zum Antippen — min 44px touch target */
+.remove-btn { color: var(--text-muted); font-size: 1rem; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); flex-shrink: 0; }
+.remove-btn:active { color: var(--danger); background: rgba(239,68,68,.15); }
 .empty-hint { color: var(--text-muted); font-size: .8rem; padding: .5rem; text-align: center; }
 
 /* ── iPad responsive (min-width: 768px) ───────────────────────────────────────*/
@@ -121,9 +122,10 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 
 /* Numpad */
 .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
-.numpad-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem .5rem; font-size: 1.5rem; font-weight: 600; color: var(--text); transition: background .1s, transform .05s; }
+.numpad-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.1rem .5rem; font-size: 1.2rem; font-weight: 600; color: var(--text); transition: background .1s, transform .05s; min-height: 56px; }
 .numpad-btn:active { background: var(--border); transform: scale(.95); }
-.numpad-btn--del { color: var(--text-muted); font-size: 1.3rem; }
+.numpad-btn--reset { background: rgba(239,68,68,.15); border-color: var(--danger); color: var(--danger); font-size: 1.4rem; }
+.numpad-btn--reset:active { background: rgba(239,68,68,.3); }
 
 .overlay-actions { display: flex; gap: .75rem; }
 #pay-complete { flex: 1; background: var(--accent); color: #000; font-weight: 700; font-size: 1.05rem; padding: .9rem; border-radius: var(--radius-sm); }
