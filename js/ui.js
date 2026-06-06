@@ -105,24 +105,38 @@ export function openPaymentDialog(totalCents, onComplete) {
   completeBtn.textContent = 'Abschließen';
   completeBtn._givenCents = null;
 
-  // Numpad state — always reset when dialog opens
+  // ── Numpad state ────────────────────────────────────────────────────────────
+  // We track two things separately:
+  //   quickCents  — total added via quick-buttons (additive, e.g. 10+10 = 20 €)
+  //   inputStr    — what the user is typing on the numpad keys
+  // The effective "given" amount = quickCents + parsedInputCents.
+  // When the user starts typing on the numpad after pressing a quick-button,
+  // the numpad input starts fresh (replaces inputStr, quickCents stays).
+  // Pressing another quick-button always adds to quickCents and clears inputStr.
+
+  let quickCents = 0;
   let inputStr = '';
+  let numpadActive = false; // true once user has pressed at least one numpad key
+
+  function getGivenCents() {
+    if (!inputStr && quickCents === 0) return null;
+    const normalized = inputStr ? inputStr.replace(',', '.') : '0';
+    const val = parseFloat(normalized);
+    const inputCents = isNaN(val) ? 0 : Math.round(val * 100);
+    return quickCents + inputCents;
+  }
 
   function updateDisplay() {
-    if (!inputStr) {
+    const givenCents = getGivenCents();
+    if (givenCents === null) {
       givenEl.textContent = '–';
       changeEl.textContent = '–';
+      changeEl.classList.remove('change--positive');
       completeBtn.disabled = true;
       completeBtn._givenCents = null;
       return;
     }
-    // Parse: allow one comma, treat as decimal separator
-    const normalized = inputStr.replace(',', '.');
-    const val = parseFloat(normalized);
-    if (isNaN(val)) return;
-    const givenCents = Math.round(val * 100);
     givenEl.textContent = formatCents(givenCents);
-
     if (givenCents >= totalCents || totalCents <= 0) {
       const ch = givenCents - totalCents;
       changeEl.textContent = formatCents(ch);
@@ -139,14 +153,19 @@ export function openPaymentDialog(totalCents, onComplete) {
 
   function handleKey(key) {
     if (key === 'del') {
-      inputStr = inputStr.slice(0, -1);
+      if (inputStr.length > 0) {
+        inputStr = inputStr.slice(0, -1);
+      } else if (quickCents > 0) {
+        // DEL on empty numpad clears last quick-amount step (subtract smallest quick)
+        quickCents = 0;
+      }
     } else if (key === ',') {
       if (!inputStr.includes(',')) inputStr += ',';
     } else {
-      // Max 7 chars (99999,99)
       if (inputStr.length >= 7) return;
       inputStr += key;
     }
+    numpadActive = true;
     updateDisplay();
   }
 
@@ -158,13 +177,16 @@ export function openPaymentDialog(totalCents, onComplete) {
   };
   numpad.addEventListener('click', numpadHandler);
 
-  // Wire quick-amount buttons
+  // Wire quick-amount buttons — additive, each press adds the amount
   const quickBtns = document.querySelectorAll('.quick-btn');
   const quickHandlers = [];
   quickBtns.forEach((btn) => {
     const handler = () => {
       const cents = parseInt(btn.dataset.amount, 10);
-      inputStr = String(cents / 100);
+      // Clear any manual numpad input when switching to quick-buttons
+      inputStr = '';
+      numpadActive = false;
+      quickCents += cents;
       updateDisplay();
     };
     btn.addEventListener('click', handler);
@@ -190,6 +212,8 @@ export function openPaymentDialog(totalCents, onComplete) {
     completeBtn.onclick = null;
     cancelBtn.onclick = null;
     inputStr = '';
+    quickCents = 0;
+    numpadActive = false;
   };
 
   completeBtn.onclick = () => {
