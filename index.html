@@ -124,17 +124,46 @@
 
 <!-- ── Payment Overlay ────────────────────────────────────────────────────────-->
 <div id="payment-overlay" class="overlay">
-  <div class="overlay-box">
-    <h2>Bezahlung</h2>
-    <div class="pay-row">
-      <span class="pay-label">Zu zahlen</span>
-      <span id="pay-total" class="pay-total-amount"></span>
+  <div class="overlay-box overlay-box--pay">
+    <div class="pay-header">
+      <div class="pay-header-row">
+        <span class="pay-label">Zu zahlen</span>
+        <span id="pay-total" class="pay-total-amount"></span>
+      </div>
+      <div class="pay-header-row">
+        <span class="pay-label">Gegeben</span>
+        <span id="pay-given-display" class="pay-given-display">–</span>
+      </div>
+      <div class="pay-header-row pay-change-row">
+        <span class="change-label">Rückgeld</span>
+        <span id="pay-change">–</span>
+      </div>
     </div>
-    <input id="pay-given" type="number" inputmode="decimal" placeholder="Gegeben (€)" step="0.01">
-    <div class="pay-row">
-      <span class="change-label">Rückgeld</span>
-      <span id="pay-change"></span>
+
+    <!-- Schnellwahl-Scheine -->
+    <div class="pay-quick">
+      <button class="quick-btn" data-amount="500">5 €</button>
+      <button class="quick-btn" data-amount="1000">10 €</button>
+      <button class="quick-btn" data-amount="2000">20 €</button>
+      <button class="quick-btn" data-amount="5000">50 €</button>
     </div>
+
+    <!-- Numpad -->
+    <div class="numpad">
+      <button class="numpad-btn" data-key="1">1</button>
+      <button class="numpad-btn" data-key="2">2</button>
+      <button class="numpad-btn" data-key="3">3</button>
+      <button class="numpad-btn" data-key="4">4</button>
+      <button class="numpad-btn" data-key="5">5</button>
+      <button class="numpad-btn" data-key="6">6</button>
+      <button class="numpad-btn" data-key="7">7</button>
+      <button class="numpad-btn" data-key="8">8</button>
+      <button class="numpad-btn" data-key="9">9</button>
+      <button class="numpad-btn" data-key=",">,</button>
+      <button class="numpad-btn" data-key="0">0</button>
+      <button class="numpad-btn numpad-btn--del" data-key="del">⌫</button>
+    </div>
+
     <div class="overlay-actions">
       <button id="pay-cancel">Abbrechen</button>
       <button id="pay-complete" disabled>Abschließen</button>

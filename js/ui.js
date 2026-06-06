@@ -84,50 +84,102 @@ export function showToast(message, type = 'info') {
 export function openPaymentDialog(totalCents, onComplete) {
   const overlay = document.getElementById('payment-overlay');
   const totalEl = document.getElementById('pay-total');
-  const givenEl = document.getElementById('pay-given');
+  const givenEl = document.getElementById('pay-given-display');
   const changeEl = document.getElementById('pay-change');
   const completeBtn = document.getElementById('pay-complete');
   const cancelBtn = document.getElementById('pay-cancel');
 
   totalEl.textContent = formatCents(totalCents);
-  givenEl.value = '';
   changeEl.textContent = '–';
+  changeEl.classList.remove('change--positive');
   completeBtn.disabled = true;
+  completeBtn.textContent = 'Abschließen';
 
-  // Pfand-only: total is negative → skip payment UI, allow direct completion
-  if (totalCents <= 0) {
-    changeEl.textContent = formatCents(Math.abs(totalCents));
-    changeEl.classList.add('change--positive');
-    completeBtn.disabled = false;
-    completeBtn.textContent = 'Rückgabe bestätigen';
-  } else {
-    completeBtn.textContent = 'Abschließen';
-    changeEl.classList.remove('change--positive');
-  }
+  // Numpad state
+  let inputStr = ''; // raw string the user is building, e.g. "1050" = 10,50
 
-  const onInput = () => {
-    const raw = givenEl.value.replace(',', '.').trim();
-    const givenCents = Math.round(parseFloat(raw) * 100);
-    if (!isNaN(givenCents) && givenCents >= totalCents) {
+  function updateDisplay() {
+    if (!inputStr) {
+      givenEl.textContent = '–';
+      changeEl.textContent = '–';
+      completeBtn.disabled = true;
+      completeBtn._givenCents = null;
+      return;
+    }
+    // Parse: allow one comma, treat as decimal separator
+    const normalized = inputStr.replace(',', '.');
+    const val = parseFloat(normalized);
+    if (isNaN(val)) return;
+    const givenCents = Math.round(val * 100);
+    givenEl.textContent = formatCents(givenCents);
+
+    if (givenCents >= totalCents || totalCents <= 0) {
       const ch = givenCents - totalCents;
       changeEl.textContent = formatCents(ch);
+      changeEl.classList.toggle('change--positive', ch >= 0);
       completeBtn.disabled = false;
       completeBtn._givenCents = givenCents;
     } else {
       changeEl.textContent = '–';
+      changeEl.classList.remove('change--positive');
       completeBtn.disabled = true;
+      completeBtn._givenCents = null;
     }
-  };
+  }
 
-  givenEl.addEventListener('input', onInput);
+  function handleKey(key) {
+    if (key === 'del') {
+      inputStr = inputStr.slice(0, -1);
+    } else if (key === ',') {
+      if (!inputStr.includes(',')) inputStr += ',';
+    } else {
+      // Max 7 chars (99999,99)
+      if (inputStr.length >= 7) return;
+      inputStr += key;
+    }
+    updateDisplay();
+  }
+
+  // Wire numpad buttons
+  const numpad = document.querySelector('.numpad');
+  const numpadHandler = (e) => {
+    const btn = e.target.closest('[data-key]');
+    if (btn) handleKey(btn.dataset.key);
+  };
+  numpad.addEventListener('click', numpadHandler);
+
+  // Wire quick-amount buttons
+  const quickBtns = document.querySelectorAll('.quick-btn');
+  const quickHandlers = [];
+  quickBtns.forEach((btn) => {
+    const handler = () => {
+      const cents = parseInt(btn.dataset.amount, 10);
+      inputStr = String(cents / 100);
+      updateDisplay();
+    };
+    btn.addEventListener('click', handler);
+    quickHandlers.push({ btn, handler });
+  });
+
+  // Pfand-only: total is negative → direct completion
+  if (totalCents <= 0) {
+    givenEl.textContent = formatCents(0);
+    changeEl.textContent = formatCents(Math.abs(totalCents));
+    changeEl.classList.add('change--positive');
+    completeBtn.disabled = false;
+    completeBtn.textContent = 'Rückgabe bestätigen';
+    completeBtn._givenCents = 0;
+  }
+
   overlay.classList.add('overlay--visible');
-  if (totalCents > 0) givenEl.focus();
 
   const cleanup = () => {
     overlay.classList.remove('overlay--visible');
-    givenEl.removeEventListener('input', onInput);
+    numpad.removeEventListener('click', numpadHandler);
+    quickHandlers.forEach(({ btn, handler }) => btn.removeEventListener('click', handler));
     completeBtn.onclick = null;
     cancelBtn.onclick = null;
+    inputStr = '';
   };
 
   completeBtn.onclick = () => {
