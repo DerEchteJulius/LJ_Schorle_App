@@ -7,20 +7,28 @@ import { formatCents } from './cart.js';
 export function renderProductGrid(products, onProductClick, onPfandClick) {
   const grid = document.getElementById('product-grid');
   grid.innerHTML = '';
+
+  // Getränke-Buttons
   products.forEach((p) => {
     const btn = document.createElement('button');
     btn.className = 'product-btn';
     btn.innerHTML = `<span class="product-name">${escHtml(p.name)}</span><span class="product-price">${formatCents(p.price_cents)}</span>`;
     btn.addEventListener('click', () => onProductClick(p));
     grid.appendChild(btn);
+  });
 
-    if (p.pledge_amount_cents > 0) {
-      const pfBtn = document.createElement('button');
-      pfBtn.className = 'product-btn pfand-btn';
-      pfBtn.innerHTML = `<span class="product-name">↩ Pfand</span><span class="product-price">-${formatCents(p.pledge_amount_cents)}</span>`;
-      pfBtn.addEventListener('click', () => onPfandClick(p));
-      grid.appendChild(pfBtn);
-    }
+  // Pfand-Rückgabe: einen Button pro einzigartigem Pfandbetrag
+  const uniquePledges = [...new Map(
+    products.filter(p => p.pledge_amount_cents > 0)
+            .map(p => [p.pledge_amount_cents, p])
+  ).values()];
+
+  uniquePledges.forEach((p) => {
+    const pfBtn = document.createElement('button');
+    pfBtn.className = 'product-btn pfand-btn';
+    pfBtn.innerHTML = `<span class="product-name">↩ Pfand zurück</span><span class="product-price">-${formatCents(p.pledge_amount_cents)}</span>`;
+    pfBtn.addEventListener('click', () => onPfandClick(p));
+    grid.appendChild(pfBtn);
   });
 }
 
@@ -90,13 +98,15 @@ export function openPaymentDialog(totalCents, onComplete) {
   const cancelBtn = document.getElementById('pay-cancel');
 
   totalEl.textContent = formatCents(totalCents);
+  givenEl.textContent = '–';
   changeEl.textContent = '–';
   changeEl.classList.remove('change--positive');
   completeBtn.disabled = true;
   completeBtn.textContent = 'Abschließen';
+  completeBtn._givenCents = null;
 
-  // Numpad state
-  let inputStr = ''; // raw string the user is building, e.g. "1050" = 10,50
+  // Numpad state — always reset when dialog opens
+  let inputStr = '';
 
   function updateDisplay() {
     if (!inputStr) {

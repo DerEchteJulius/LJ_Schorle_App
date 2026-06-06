@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kasse-v2';
+const CACHE_NAME = 'kasse-v3';
 const CACHED_URLS = [
   '/',
   '/index.html',
