@@ -217,43 +217,135 @@ export function renderProductSettings(products, onEdit, onDelete, onMoveUp, onMo
 
 // ── Statistics View ───────────────────────────────────────────────────────────
 
-export function renderStats(transactions) {
-  const statsEl = document.getElementById('stats-list');
-  const totalEl = document.getElementById('stats-total');
-
-  // Aggregate by product name
+function aggregateByProduct(transactions) {
   const map = {};
   let grandTotal = 0;
-
+  let txCount = 0;
   transactions.forEach((tx) => {
+    txCount++;
+    grandTotal += tx.total_cents;
     tx.items.forEach((item) => {
+      // Nur Getränke zählen (keine Pfand-Aufschläge, keine neg. Pfand-Rückgaben)
       const key = item.product_name;
       if (!map[key]) map[key] = { name: key, qty: 0, total_cents: 0 };
       map[key].qty += item.qty;
       map[key].total_cents += item.qty * item.unit_price_cents;
     });
-    grandTotal += tx.total_cents;
+  });
+  const rows = Object.values(map).sort((a, b) => b.total_cents - a.total_cents);
+  return { rows, grandTotal, txCount };
+}
+
+function renderProductTable(rows, grandTotal, txCount, container) {
+  container.innerHTML = '';
+  if (rows.length === 0) {
+    container.innerHTML = '<p class="empty-hint">Keine Transaktionen</p>';
+    return;
+  }
+  const summary = document.createElement('div');
+  summary.className = 'stats-summary';
+  summary.innerHTML = `
+    <span>${txCount} Transaktionen</span>
+    <span class="stats-grand-amount">${formatCents(grandTotal)}</span>
+  `;
+  container.appendChild(summary);
+
+  const table = document.createElement('ul');
+  table.className = 'stats-list-inner';
+  rows.forEach((row) => {
+    const li = document.createElement('li');
+    li.className = 'stats-row';
+    li.innerHTML = `
+      <span class="stats-name">${escHtml(row.name)}</span>
+      <span class="stats-qty">${row.qty}×</span>
+      <span class="stats-total">${formatCents(row.total_cents)}</span>
+    `;
+    table.appendChild(li);
+  });
+  container.appendChild(table);
+}
+
+export function renderStats(localTxs, allFirebaseTxs, deviceLabel) {
+  const container = document.getElementById('stats-container');
+  container.innerHTML = '';
+
+  // ── Tab bar ──────────────────────────────────────────────────────────────
+  const tabs = document.createElement('div');
+  tabs.className = 'stats-tabs';
+  const tabDefs = [
+    { key: 'gesamt', label: '📊 Gesamt' },
+    { key: 'geraete', label: '📱 Pro Gerät' },
+    { key: 'lokal', label: '🏷 Dieses Gerät' },
+  ];
+  tabDefs.forEach(({ key, label }) => {
+    const btn = document.createElement('button');
+    btn.className = 'stats-tab-btn';
+    btn.dataset.tab = key;
+    btn.textContent = label;
+    tabs.appendChild(btn);
+  });
+  container.appendChild(tabs);
+
+  const content = document.createElement('div');
+  content.className = 'stats-tab-content';
+  container.appendChild(content);
+
+  // ── Gesamt (Firebase alle Geräte) ────────────────────────────────────────
+  const allTxs = allFirebaseTxs.length > 0 ? allFirebaseTxs : localTxs;
+  const { rows: allRows, grandTotal: allTotal, txCount: allCount } = aggregateByProduct(allTxs);
+
+  // ── Pro Gerät ────────────────────────────────────────────────────────────
+  const deviceMap = {};
+  allTxs.forEach((tx) => {
+    const d = tx.device_name || tx.device_id || 'Unbekannt';
+    if (!deviceMap[d]) deviceMap[d] = [];
+    deviceMap[d].push(tx);
   });
 
-  const sorted = Object.values(map).sort((a, b) => b.total_cents - a.total_cents);
+  // ── Lokal ────────────────────────────────────────────────────────────────
+  const { rows: localRows, grandTotal: localTotal, txCount: localCount } = aggregateByProduct(localTxs);
 
-  statsEl.innerHTML = '';
-  if (sorted.length === 0) {
-    statsEl.innerHTML = '<li class="empty-hint">Noch keine Transaktionen</li>';
-  } else {
-    sorted.forEach((row) => {
-      const li = document.createElement('li');
-      li.className = 'stats-row';
-      li.innerHTML = `
-        <span class="stats-name">${escHtml(row.name)}</span>
-        <span class="stats-qty">${row.qty}×</span>
-        <span class="stats-total">${formatCents(row.total_cents)}</span>
-      `;
-      statsEl.appendChild(li);
-    });
+  function showTab(key) {
+    tabs.querySelectorAll('.stats-tab-btn').forEach((b) => b.classList.toggle('stats-tab-btn--active', b.dataset.tab === key));
+    content.innerHTML = '';
+
+    if (key === 'gesamt') {
+      const wrap = document.createElement('div');
+      const source = allFirebaseTxs.length > 0
+        ? `<p class="stats-source">☁ Live aus Firebase (${allTxs.length} Transaktionen total)</p>`
+        : `<p class="stats-source stats-source--warn">⚠ Kein Firebase — nur lokale Daten</p>`;
+      wrap.innerHTML = source;
+      content.appendChild(wrap);
+      renderProductTable(allRows, allTotal, allCount, wrap);
+
+    } else if (key === 'geraete') {
+      if (Object.keys(deviceMap).length === 0) {
+        content.innerHTML = '<p class="empty-hint">Keine Gerätedaten verfügbar</p>';
+        return;
+      }
+      Object.entries(deviceMap).forEach(([device, txs]) => {
+        const { rows, grandTotal, txCount } = aggregateByProduct(txs);
+        const section = document.createElement('div');
+        section.className = 'stats-device-section';
+        section.innerHTML = `<h3 class="stats-device-name">${escHtml(device)}</h3>`;
+        renderProductTable(rows, grandTotal, txCount, section);
+        content.appendChild(section);
+      });
+
+    } else if (key === 'lokal') {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `<p class="stats-source">Nur dieses Gerät: <strong>${escHtml(deviceLabel)}</strong></p>`;
+      content.appendChild(wrap);
+      renderProductTable(localRows, localTotal, localCount, wrap);
+    }
   }
 
-  totalEl.textContent = formatCents(grandTotal);
+  tabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-tab]');
+    if (btn) showTab(btn.dataset.tab);
+  });
+
+  showTab('gesamt');
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

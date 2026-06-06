@@ -146,16 +146,38 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 #product-form-cancel { padding: .75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 
 /* ── Stats View ──────────────────────────────────────────────────────────────*/
-#view-stats { overflow-y: auto; padding: 1rem; gap: .75rem; }
-.stats-header { display: flex; justify-content: space-between; align-items: center; }
+#view-stats { overflow-y: auto; padding: 0; display: flex; flex-direction: column; }
+.stats-header { display: flex; justify-content: space-between; align-items: center; padding: .75rem 1rem; flex-shrink: 0; }
 .stats-header h2 { font-size: 1rem; }
-#stats-list { list-style: none; display: flex; flex-direction: column; gap: .25rem; }
-.stats-row { display: flex; align-items: center; gap: .5rem; padding: .6rem .75rem; background: var(--surface); border-radius: var(--radius-sm); font-size: .9rem; }
+
+/* Tabs */
+.stats-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.stats-tab-btn { flex: 1; padding: .65rem .5rem; font-size: .82rem; color: var(--text-muted); border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; white-space: nowrap; }
+.stats-tab-btn--active { color: var(--text); border-bottom-color: var(--accent); }
+
+/* Content */
+#stats-container { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.stats-tab-content { flex: 1; overflow-y: auto; padding: .75rem; display: flex; flex-direction: column; gap: .75rem; }
+
+/* Source indicator */
+.stats-source { font-size: .75rem; color: var(--text-muted); margin-bottom: .25rem; }
+.stats-source--warn { color: var(--pfand); }
+
+/* Summary row */
+.stats-summary { display: flex; justify-content: space-between; align-items: center; padding: .65rem .75rem; background: var(--surface2); border-radius: var(--radius-sm); margin-bottom: .4rem; font-size: .9rem; }
+.stats-grand-amount { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+
+/* Product list */
+.stats-list-inner { list-style: none; display: flex; flex-direction: column; gap: .25rem; }
+.stats-row { display: flex; align-items: center; gap: .5rem; padding: .55rem .75rem; background: var(--surface); border-radius: var(--radius-sm); font-size: .88rem; }
 .stats-name { flex: 1; }
 .stats-qty { color: var(--text-muted); min-width: 2.5rem; text-align: right; }
 .stats-total { color: var(--accent); min-width: 5rem; text-align: right; font-weight: 600; }
-.stats-grand { display: flex; justify-content: space-between; padding: .75rem; background: var(--surface2); border-radius: var(--radius-sm); font-size: 1rem; }
-.stats-grand-total { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+
+/* Per-device sections */
+.stats-device-section { background: var(--surface2); border-radius: var(--radius); padding: .75rem; display: flex; flex-direction: column; gap: .4rem; }
+.stats-device-name { font-size: .85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .25rem; }
+
 .btn-secondary { background: var(--surface2); border: 1px solid var(--border); padding: .6rem 1rem; border-radius: var(--radius-sm); font-size: .9rem; }
 
 /* ── Settings View ───────────────────────────────────────────────────────────*/

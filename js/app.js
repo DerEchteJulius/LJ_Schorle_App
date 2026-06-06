@@ -4,7 +4,7 @@ import { getProducts, getAllProducts, getCart, addToCart, removeFromCart, clearC
 import { computeTotal, computeChange, generateId, getDeviceId, getDeviceName, setDeviceName, getDeviceLabel, getLastBackup, parseToCents, formatCents } from './cart.js';
 import { renderProductGrid, renderOrderList, renderTotal, updateBackupTimestamp, showToast, openPaymentDialog, renderProductSettings, renderStats } from './ui.js';
 import { exportCSV, exportConfig, importConfig } from './export.js';
-import { syncTransactionToFirebase } from './firebase.js';
+import { syncTransactionToFirebase, subscribeToAllTransactions } from './firebase.js';
 
 // ── Firebase Sync helpers ─────────────────────────────────────────────────────
 
@@ -197,6 +197,7 @@ document.getElementById('pay-btn').addEventListener('click', () => {
       total_cents: total,
       paid_cents: givenCents,
       change_cents: computeChange(givenCents, total),
+      device_name: getDeviceLabel(), // lesbare Gerätebezeichnung für Stats
     };
     await saveTransaction(tx);
     await clearCart();
@@ -226,8 +227,14 @@ async function switchView(view) {
   });
 
   if (view === 'stats') {
-    const txs = await getAllTransactions();
-    renderStats(txs);
+    const localTxs = await getAllTransactions();
+    renderStats(localTxs, [], getDeviceLabel());
+    // Firebase-Daten nachladen wenn online
+    if (navigator.onLine) {
+      subscribeToAllTransactions((allTxs) => {
+        renderStats(localTxs, allTxs, getDeviceLabel());
+      });
+    }
   }
   if (view === 'settings') {
     const all = await getAllProducts();
