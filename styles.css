@@ -160,11 +160,8 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .settings-row input { flex: 1; padding: .65rem .9rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: .95rem; }
 .btn-primary { background: var(--accent2); color: #fff; font-weight: 600; padding: .65rem 1rem; border-radius: var(--radius-sm); font-size: .9rem; }
 .btn-danger { background: var(--danger); color: #fff; font-weight: 600; padding: .65rem 1rem; border-radius: var(--radius-sm); font-size: .9rem; width: 100%; }
-#settings-product-list { list-style: none; display: flex; flex-direction: column; gap: .4rem; position: relative; }
-.settings-product-item { display: flex; align-items: center; gap: .5rem; padding: .6rem .5rem; background: var(--surface2); border-radius: var(--radius-sm); touch-action: none; }
-.settings-product-item.dragging { position: absolute; left: 0; right: 0; z-index: 10; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 8px 24px rgba(0,0,0,.5); opacity: .95; }
-.drag-placeholder { background: transparent; border: 2px dashed var(--border); border-radius: var(--radius-sm); }
-.drag-handle { font-size: 1.3rem; color: var(--text-muted); padding: .2rem .3rem; cursor: grab; flex-shrink: 0; }
+#settings-product-list { list-style: none; display: flex; flex-direction: column; gap: .4rem; }
+.settings-product-item { display: flex; align-items: center; gap: .5rem; padding: .6rem .5rem; background: var(--surface2); border-radius: var(--radius-sm); }
 .settings-product-info { flex: 1; display: flex; flex-direction: column; }
 .settings-product-name { font-size: .9rem; }
 .settings-product-price { font-size: .78rem; color: var(--text-muted); }
