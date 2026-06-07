@@ -51,8 +51,11 @@ export function renderOrderList(cartItems, onRemove) {
     else if (item.product_id && item.product_id.endsWith('_pfand_out')) cls += ' order-item--pfand-out';
     li.className = cls;
     const lineTotal = item.qty * item.unit_price_cents;
+    // Anzeige: qty=1 → kein Suffix, qty=3 → ×3, qty=-3 → ×3 (Betrag ist schon negativ)
+    const absQty = Math.abs(item.qty);
+    const qtySuffix = absQty > 1 ? ` ×${absQty}` : '';
     li.innerHTML = `
-      <span class="item-name">${escHtml(item.product_name)}${item.qty !== 1 && item.qty !== -1 ? ` ×${item.qty}` : ''}</span>
+      <span class="item-name">${escHtml(item.product_name)}${qtySuffix}</span>
       <span class="item-price">${formatCents(lineTotal)}</span>
       <button class="remove-btn" aria-label="Entfernen">✕</button>
     `;

@@ -155,15 +155,23 @@ async function handleProductClick(product) {
 }
 
 async function handlePfandClick(product) {
-  const item = {
-    id: generateId(),
-    product_id: product.id + '_pfand',
-    product_name: product.name + ' (Pfand)',
-    qty: -1,
-    unit_price_cents: product.pledge_amount_cents,
-  };
-  cartItems.push(item);
-  await addToCart(item);
+  // Generischer Name — unabhängig vom Produkt
+  const pfandId = 'pfand_rueckgabe_' + product.pledge_amount_cents;
+  const existing = cartItems.find((i) => i.product_id === pfandId);
+  if (existing) {
+    existing.qty--;
+    await addToCart(existing);
+  } else {
+    const item = {
+      id: generateId(),
+      product_id: pfandId,
+      product_name: 'Pfand zurück',
+      qty: -1,
+      unit_price_cents: product.pledge_amount_cents,
+    };
+    cartItems.push(item);
+    await addToCart(item);
+  }
   renderOrderList(cartItems, handleRemoveItem);
   renderTotal(computeTotal(cartItems));
 }
